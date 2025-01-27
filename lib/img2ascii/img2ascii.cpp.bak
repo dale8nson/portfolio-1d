@@ -1,0 +1,120 @@
+#include <emscripten.h>
+#include <emscripten/bind.h>
+#include <cstdint>
+#include <print>
+#include <string>
+#include <vector>
+#include <format>
+#include <FreeImage.h>
+
+using namespace std;
+using namespace emscripten;
+
+extern "C"
+{
+  // typedef struct FIBITMAP;
+
+  void FreeImage_Initialise(BOOL);
+  FIBITMAP *FreeImage_Load(FREE_IMAGE_FORMAT, const char *, int);
+  BOOL FreeImage_IsTransparent(FIBITMAP *);
+  unsigned int FreeImage_GetWidth(FIBITMAP *);
+  unsigned int FreeImage_GetHeight(FIBITMAP *);
+  FIBITMAP *FreeImage_Rescale(FIBITMAP *, int, int, FREE_IMAGE_FILTER);
+  BYTE *FreeImage_GetBits(FIBITMAP *);
+  void FreeImage_Unload(FIBITMAP *);
+  void FreeImage_DeInitialise();
+}
+
+typedef struct
+{
+} ref_t;
+
+typedef struct
+{
+  const string className;
+  const string children;
+} props;
+
+typedef struct
+{
+} owner;
+
+typedef struct
+{
+} store;
+
+typedef struct
+{
+  const string type;
+  const string key;
+  const ref_t *ref;
+  const props props;
+  const owner *_owner;
+  const store _store;
+} element;
+
+vector<element> img2ascii(string src, uint16_t rows = 100, uint16_t columns = 100, float scale = 0.03125)
+{
+
+  const vector<string> gscale{"0", "1"};
+
+  vector<element> elements;
+
+  FreeImage_Initialise();
+
+  FIBITMAP *img = FreeImage_Load(FIF_JPEG, src.c_str(), JPEG_DEFAULT);
+
+  const bool transparent = FreeImage_IsTransparent(img);
+  size_t channels = transparent ? 4 : 3;
+
+  const unsigned int width = FreeImage_GetWidth(img);
+  const unsigned int height = FreeImage_GetHeight(img);
+
+  const unsigned int scaledWidth = floor(width * scale);
+  const unsigned int scaledHeight = floor(height * scale);
+
+  FIBITMAP *scaledImg = FreeImage_Rescale(img, scaledWidth, scaledHeight);
+  BYTE *imgData = FreeImage_GetBits(scaledImg);
+
+  const size_t rowHeight = floor(scaledHeight / rows);
+  const size_t columnWidth = floor(scaledWidth / columns);
+
+  for (size_t i = 0; i < scaledHeight * channels; i += channels * rowHeight)
+  {
+    for (size_t j = 0; j < scaledWidth * channels; j += channels * columnWidth)
+    {
+      const uint8_t r = floor(imgData[i * scaledWidth + i]);
+      const uint8_t g = floor(imgData[i * scaledWidth + i + 1]);
+      const uint8_t b = floor(imgData[i * scaledWidth + i + 2]);
+
+      const size_t index = floor((r + g + b) / 3 / 255 * gscale.size());
+
+      const string className{format("text-[rgb({},{},{})]", r, g, b)};
+
+      const string key = to_string(i + j);
+      const ref_t *_ref{nullptr};
+      const props p{className, gscale[index]};
+      const owner *_owner{nullptr};
+      const store _store{};
+
+      const element el{"span", key, _ref, p, _owner, _store};
+
+      elements.push_back(el);
+    }
+  }
+
+  FreeImage_Unload(img);
+  FreeImage_DeInitialise();
+
+  return elements;
+}
+
+EMSCRIPTEN_BINDINGS(img2ascii)
+{
+  emscripten::function("img2ascii", &img2ascii);
+  register_vector<string>("StringArray");
+  register_optional<string>();
+  // register_vector<element>("ElementArray");
+}
+
+// int main() { return 0; }

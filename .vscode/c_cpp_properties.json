@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "macos-clang-arm64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/Users/dale8nson/dev/llvm-project/libcxx/include",
+                "/Users/dale8nson/dev/algorithms/vcpkg_installed/arm64-osx/include",
+                "/Users/dale8nson/web/sites/emscripten/system/include",
+                "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/c++/v1"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "macos-clang-arm64",
+            "compilerArgs": [
+                "-I/Users/dale8nson/web/sites/emscripten/system/include",
+                "-I/Users/dale8nson/dev/portfolio-1d/lib/img2ascii/vcpkg_installed/arm64-osx/include",
+                "-I/Users/dale8nson/web/sites/emscripten/system/include"
+            ]
+        }
+    ],
+    "version": 4
+}
