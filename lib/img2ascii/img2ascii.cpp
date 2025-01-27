@@ -21,6 +21,10 @@ extern "C"
   void FreeImage_Unload(FIBITMAP *);
   void FreeImage_DeInitialise();
 
+  float clamp (float n, float min, float max) {
+    return n < min ? min : n > max ? max : n;
+  }
+
   EMSCRIPTEN_KEEPALIVE
   char *img2ascii(const char *src, unsigned int rows, unsigned int columns, float scale)
   {
@@ -63,8 +67,6 @@ extern "C"
     // FIBITMAP *scaledImg = FreeImage_Rescale(img, scaledWidth, scaledHeight, FILTER_BOX);
     BYTE *imgData = FreeImage_GetBits(img);
 
-    // const size_t rowHeight = floor(scaledHeight / rows);
-    // const size_t columnWidth = floor(scaledWidth / columns);
     const size_t rowHeight = floor(height / rows);
     const size_t columnWidth = floor(width / columns);
 
@@ -74,14 +76,11 @@ extern "C"
     {
       for (size_t j = 0; j < width * channels; j += channels * columnWidth)
       {
-        // const uint8_t r = floor(imgData[i * scaledWidth + j]);
-        // const uint8_t g = floor(imgData[i * scaledWidth + j + 1]);
-        // const uint8_t b = floor(imgData[i * scaledWidth + j + 2]);
         const size_t r = floor(imgData[i * width + j + 2]);
         const size_t g = floor(imgData[i * width + j + 1]);
         const size_t b = floor(imgData[i * width + j ]);
 
-        const size_t gindex = floor(((float)((r + g + b) / 3) / 255.f * 2.f));
+        const size_t gindex = clamp(floor(((float)((r + g + b) / 3) / 255.f * 2.f)), 0.f, 1.f);
 
         char className[256];
         int className_sz = sprintf(className, "text-[rgb(%zu,%zu,%zu)]", r, g, b);
