@@ -21,7 +21,7 @@ export const AsciiImage = ({ src, rows = 100, columns = 100, scale = 0.03125, cl
 
       const json = await img2ascii(src, rows, columns, scale)
       // console.log("json", json)
-
+      console.log("json: ", JSON.parse(json))
       setAsciiData(JSON.parse(json))
     };
 
@@ -43,7 +43,7 @@ export const AsciiImage = ({ src, rows = 100, columns = 100, scale = 0.03125, cl
 
   return (
     <div className={`w-full h-full m-auto flex flex-col justify-center items-center overflow-clip ${className}`}>
-      {asciiData && <p className="text-nowrap text-[0.75rem] tracking-[0.55rem] leading-[0.76rem)] font-[fira-code]">{asciiData.map((char: JSX.Element) =>  createElement(char.type, char.props, char.props.children))}</p>}
+      {asciiData && <p className="text-nowrap text-[0.75rem] tracking-[0.55rem] leading-[0.76rem)] font-[fira-code]">{asciiData.map((char: JSX.Element) =>  createElement(char.type, {...char.props, key: char.key}, char.props.children))}</p>}
     </div>
   )
 }

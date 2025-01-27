@@ -39,7 +39,7 @@ export const About = () => {
                 
           </div>
           <div className="col-span-10 flex flex-col items-center justify-center border-[#1E2D3D] blur-0 border-[1px] w-full h-full overflow-clip">
-          <AsciiImage src={"/Users/dale8nson/dev/portfolio-1d/public/ProfilePicture.jpg"} rows={100} columns={75} className="translate-y-[20rem]" />
+          <AsciiImage src={"/Users/dale8nson/dev/portfolio-1d/public/ProfilePicture.jpg"} rows={50} columns={50} className="font-[fira-code]" />
           </div>
         </section>}
         </ QueryClientProvider>

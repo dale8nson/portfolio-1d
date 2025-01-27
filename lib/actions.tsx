@@ -44,11 +44,9 @@ import sharp from "sharp"
 //   return results.instance
 // }
 
-
-
 export const img2ascii = async (src: string, rows: number, columns: number, scale: number) => {
   const wasmModule = await import('@/public/wasm/img2ascii.js');
-  console.log("wasmModule: ", wasmModule)
+  // console.log("wasmModule: ", wasmModule)
   const Module = await wasmModule.default({
     locateFile: (file:any) => {
       if (file.endsWith('.wasm')) {
@@ -57,17 +55,17 @@ export const img2ascii = async (src: string, rows: number, columns: number, scal
       }
       return file;
     }});
-  console.log("Module:\n", Module)
+  // console.log("Module:\n", Module)
 
-  console.log("process.cwd(): ", process.cwd())
+  // console.log("process.cwd(): ", process.cwd())
   
   let resultPtr = await Module.ccall('img2ascii', 'number', ['string', 'number', 'number', 'number'], [src, rows, columns, scale]);
 
   // let resultPtr = img2ascii("@/public/ProfilePicture.jpg", rows, columns, scale);
-  console.log('Result pointer:', resultPtr);
+  // console.log('Result pointer:', resultPtr);
   const json = Module.UTF8ToString(resultPtr)
   // console.log("json string: ", json)
-  console.log("json: ", JSON.parse(json))
+  // console.log("json: ", JSON.parse(json))
   Module.ccall("free", null, ["number"], resultPtr);
 
   return json

@@ -9,10 +9,11 @@
 
 extern "C"
 {
-  
+
   void FreeImage_Initialise(BOOL);
   FIBITMAP *FreeImage_Load(FREE_IMAGE_FORMAT, const char *, int);
   BOOL FreeImage_IsTransparent(FIBITMAP *);
+  unsigned FreeImage_GetBPP(FIBITMAP *);
   unsigned int FreeImage_GetWidth(FIBITMAP *);
   unsigned int FreeImage_GetHeight(FIBITMAP *);
   FIBITMAP *FreeImage_Rescale(FIBITMAP *, int, int, FREE_IMAGE_FILTER);
@@ -36,7 +37,7 @@ extern "C"
     size_t elements_sz = strlen(elements) + 1;
 
     // printf("elements before loops: %s\n", elements);
-  
+
     FreeImage_Initialise(0);
 
     FIBITMAP *img = FreeImage_Load(FIF_JPEG, src, JPEG_DEFAULT);
@@ -44,7 +45,7 @@ extern "C"
     if (!img)
     {
       fprintf(stderr, "%s", "image not found");
-      return (char *) "image not found\n";
+      return (char *)"image not found\n";
     }
 
     const BOOL transparent = FreeImage_IsTransparent(img);
@@ -53,40 +54,49 @@ extern "C"
     const unsigned int width = FreeImage_GetWidth(img);
     const unsigned int height = FreeImage_GetHeight(img);
 
-    const unsigned int scaledWidth = floor(width * scale);
-    const unsigned int scaledHeight = floor(height * scale);
+    // const unsigned int scaledWidth = floor(width * scale);
+    // const unsigned int scaledHeight = floor(height * scale);
 
-    FIBITMAP *scaledImg = FreeImage_Rescale(img, scaledWidth, scaledHeight, FILTER_BILINEAR);
-    BYTE *imgData = FreeImage_GetBits(scaledImg);
+    unsigned int bpp = FreeImage_GetBPP(img);
+    fprintf(stdout, "bpp: %u\n", bpp);
 
-    const size_t rowHeight = floor(scaledHeight / rows);
-    const size_t columnWidth = floor(scaledWidth / columns);
+    // FIBITMAP *scaledImg = FreeImage_Rescale(img, scaledWidth, scaledHeight, FILTER_BOX);
+    BYTE *imgData = FreeImage_GetBits(img);
 
-    for (size_t i = 0; i < scaledHeight * channels; i += channels * rowHeight)
+    // const size_t rowHeight = floor(scaledHeight / rows);
+    // const size_t columnWidth = floor(scaledWidth / columns);
+    const size_t rowHeight = floor(height / rows);
+    const size_t columnWidth = floor(width / columns);
+
+    size_t final_i = 0, final_j = 0; 
+
+    for (size_t i = rowHeight * rows * channels; i > 0 ; i -= channels * rowHeight)
     {
-      for (size_t j = 0; j < scaledWidth * channels; j += channels * columnWidth)
+      for (size_t j = 0; j < width * channels; j += channels * columnWidth)
       {
-        const uint8_t r = floor(imgData[i * scaledWidth + j]);
-        const uint8_t g = floor(imgData[i * scaledWidth + j + 1]);
-        const uint8_t b = floor(imgData[i * scaledWidth + j + 2]);
+        // const uint8_t r = floor(imgData[i * scaledWidth + j]);
+        // const uint8_t g = floor(imgData[i * scaledWidth + j + 1]);
+        // const uint8_t b = floor(imgData[i * scaledWidth + j + 2]);
+        const size_t r = floor(imgData[i * width + j + 2]);
+        const size_t g = floor(imgData[i * width + j + 1]);
+        const size_t b = floor(imgData[i * width + j ]);
 
-        const size_t gindex = floor((r + g + b) / 3 / 255 * 2);
+        const size_t gindex = floor(((float)((r + g + b) / 3) / 255.f * 2.f));
 
         char className[256];
-        int className_sz = sprintf(className, "text-[rgb(%u,%u,%u)]", r, g, b);
+        int className_sz = sprintf(className, "text-[rgb(%zu,%zu,%zu)]", r, g, b);
 
         // fprintf(stdout, "className: %s\n", className);
 
         char key[16];
-        int key_sz = sprintf(key, "%zu", (i + j) / 3);
+        int key_sz = sprintf(key, "%zu", (i * columns + j) / 3);
         // printf("key: %s\n", key);
 
         char *el = (char *)malloc(200 * sizeof(char));
 
-        int json_sz = sprintf(el, "{ \"type\": \"span\", \"key\": %s, \"_ref\": null, \"props\": { \"className\": \"%s\", \"children\": \"%s\" }, \"_owner\": null, \"_store\": {}},\n", key, className, gscale[gindex]);
+        int json_sz = sprintf(el, "{ \"type\": \"span\", \"key\": \"%s\", \"_ref\": null, \"props\": { \"className\": \"%s\", \"children\": \"%s\", \"style\": { \"color\": \"rgb(%zu,%zu,%zu)\"} }, \"_owner\": null, \"_store\": {}},\n", key, className, gscale[gindex], r, g, b);
 
         // fprintf(stdout, "el:%s", el);
-
 
         elements = (char *)realloc(elements, (elements_sz + json_sz) * sizeof(char));
         elements = strcat(elements, el);
@@ -96,19 +106,24 @@ extern "C"
         // fprintf(stdout, "elements:\n%s\n", elements);
 
         free(el);
+
+        final_j = j;
       }
-      char *br = (char *) malloc(200 * sizeof(char));
-        const char *c = i <  (scaledHeight * channels - channels * rowHeight) ? "," : " ";
-        sprintf(br, "{\"type\":\"br\",\"key\": \"row-%zu-break\", \"_ref\": null, \"props\": {}, \"_owner\": null, \"_store\": {}}%s\n", i / channels, c);
-        elements_sz += strlen(br);
-        elements = (char *) realloc(elements, (elements_sz + 1) * sizeof(char));
-        elements = strcat(elements, br);
-        
+      char *br = (char *)malloc(200 * sizeof(char));
+      const char *c = i > channels * rowHeight ? "," : " ";
+      sprintf(br, "{\"type\":\"br\",\"key\": \"row-%zu-break\", \"_ref\": null, \"props\": {}, \"_owner\": null, \"_store\": {}}%s\n", i / channels, c);
+      elements_sz += strlen(br);
+      elements = (char *)realloc(elements, (elements_sz + 1) * sizeof(char));
+      elements = strcat(elements, br);
+      final_i = i;
     }
+
+    printf("final_i: %zu\tfinal_j: %zu\n", final_i, final_j);
+    printf("height / rows: %u\twidth / columns:%u\nrowHeight * rows:%zu\tcolumnWidth * columns: %zu\n", height / rows, width / columns, rowHeight * rows, columnWidth * columns);
 
     const char end[] = "]\n";
 
-    elements = (char *) realloc(elements, (elements_sz + strlen(end) + 1) * sizeof(char));
+    elements = (char *)realloc(elements, (elements_sz + strlen(end) + 1) * sizeof(char));
 
     strcat(elements, end);
 
